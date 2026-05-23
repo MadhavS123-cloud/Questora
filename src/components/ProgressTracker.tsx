@@ -42,7 +42,7 @@ export default function ProgressTracker({ status, step, logs, onBackgroundToggle
       <div className="bg-neutral-100 border border-neutral-300 rounded-2xl overflow-hidden shadow-[0_8px_40px_-8px_rgba(0,0,0,0.4)]">
  
         {/* Header */}
-        <div className="bg-gradient-to-r from-black via-neutral-950 to-neutral-900 px-6 py-5 flex items-center justify-between relative overflow-hidden">
+        <div className="bg-gradient-to-r from-neutral-50 via-neutral-100 to-neutral-200 px-6 py-5 flex items-center justify-between relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 via-transparent to-semantic-ai/10 pointer-events-none" />
           <div className="flex items-center gap-3 relative">
             <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">

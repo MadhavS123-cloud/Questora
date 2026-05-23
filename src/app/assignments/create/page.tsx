@@ -316,7 +316,7 @@ export default function CreateAssignment() {
           {/* Blueprint preview card */}
           <div className="bg-neutral-100 border border-neutral-300 rounded-2xl overflow-hidden shadow-premium">
             {/* Header */}
-            <div className="bg-gradient-to-br from-black via-neutral-950 to-neutral-900 p-5 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-neutral-50 via-neutral-100 to-neutral-200 p-5 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-brand-500/10 via-transparent to-semantic-ai/10 pointer-events-none" />
               <span className="text-[9px] font-black uppercase tracking-widest text-brand-500 block mb-1">
                 ⚡ Live Blueprint Preview
