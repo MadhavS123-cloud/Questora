@@ -5,17 +5,20 @@ import { sendAssignmentProgress } from '../socket/gateway';
 
 const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
 const REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
+const REDIS_URL = process.env.REDIS_URL;
 
 let assignmentQueue: Queue | null = null;
 let isRedisOnline = false;
 
-// Create standard Redis clients for BullMQ
-const redisConnection = new QueueRedis({
-  host: REDIS_HOST,
-  port: REDIS_PORT,
-  maxRetriesPerRequest: null,
-  lazyConnect: true
-});
+// Create standard Redis clients for BullMQ supporting connection string (REDIS_URL) or host/port config
+const redisConnection = REDIS_URL
+  ? new QueueRedis(REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true })
+  : new QueueRedis({
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      maxRetriesPerRequest: null,
+      lazyConnect: true
+    });
 
 // Register error event listener to prevent unhandled promise / event errors when offline
 redisConnection.on('error', (err) => {
@@ -198,8 +201,13 @@ async function executeSynthesisPipeline(assignmentId: string) {
 // Queue trigger action
 export async function triggerAssignmentSynthesis(assignmentId: string) {
   if (isRedisOnline && assignmentQueue) {
-    await assignmentQueue.add(`job-${assignmentId}`, { assignmentId });
-    console.log(`[BullMQ] Enqueued assignment compilation job: ${assignmentId}`);
+    try {
+      await assignmentQueue.add(`job-${assignmentId}`, { assignmentId });
+      console.log(`[BullMQ] Enqueued assignment compilation job: ${assignmentId}`);
+    } catch (err: any) {
+      console.warn('[BullMQ] Failed to add to Redis queue, falling back to in-memory:', err.message);
+      runInMemorySynthesis(assignmentId);
+    }
   } else {
     // Run async fallback
     runInMemorySynthesis(assignmentId);

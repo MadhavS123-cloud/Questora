@@ -56,6 +56,11 @@ export async function uploadAndCreateAssignment(req: Request, res: Response) {
     } catch (parseErr) {
       console.warn('Could not parse file text:', parseErr);
       extractedText = 'Document content could not be extracted.';
+    } finally {
+      // Clean up the uploaded file from disk asynchronously to prevent storage leaks
+      fs.unlink(file.path, (err) => {
+        if (err) console.error(`Failed to delete temporary file ${file.path}:`, err);
+      });
     }
 
     const newAssignment = new AssignmentModel({
