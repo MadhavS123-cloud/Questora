@@ -452,7 +452,7 @@ export const useAssignmentStore = create<AssignmentStore>((set, get) => ({
         const targetAssignment = get().assignments.find(a => a.id === id);
         if (targetAssignment) {
           // If the paper was empty (e.g. newly created), give it questions modeled from kinematics
-          const finalSections = targetAssignment.sections.length > 0 ? targetAssignment.sections : [
+          const finalSections: Section[] = targetAssignment.sections.length > 0 ? targetAssignment.sections : [
             {
               id: 'sec-a',
               title: 'SECTION A: MULTIPLE CHOICE QUESTIONS (10 Marks)',

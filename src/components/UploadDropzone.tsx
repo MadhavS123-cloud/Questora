@@ -119,12 +119,12 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
           className={clsx(
             'relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group overflow-hidden',
             isDragOver
-              ? 'border-brand-500 bg-brand-50 shadow-[0_0_0_4px_rgba(99,102,241,0.08)]'
-              : 'border-neutral-200 hover:border-brand-400 hover:bg-brand-50/30'
+              ? 'border-brand-500 bg-brand-500/5 shadow-[0_0_0_4px_rgba(249,115,22,0.08)]'
+              : 'border-neutral-400 hover:border-brand-500 hover:bg-brand-500/5'
           )}
           style={{
             backgroundImage: isDragOver
-              ? 'radial-gradient(circle at 50% 50%, rgba(99,102,241,0.04) 0%, transparent 70%)'
+              ? 'radial-gradient(circle at 50% 50%, rgba(249,115,22,0.04) 0%, transparent 70%)'
               : undefined
           }}
         >
@@ -142,10 +142,10 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
             <div className={clsx(
               'w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300',
               isDragOver
-                ? 'bg-brand-100 scale-110 shadow-[0_0_20px_rgba(99,102,241,0.2)]'
-                : 'bg-neutral-100 group-hover:bg-brand-50 group-hover:scale-105'
+                ? 'bg-brand-500/10 scale-110 shadow-[0_0_20px_rgba(249,115,22,0.2)]'
+                : 'bg-neutral-100 group-hover:bg-brand-500/10 group-hover:scale-105'
             )}>
-              <UploadCloud size={26} className={isDragOver ? 'text-brand-600' : 'text-neutral-500 group-hover:text-brand-500'} />
+              <UploadCloud size={26} className={isDragOver ? 'text-brand-500' : 'text-neutral-700 group-hover:text-brand-500'} />
             </div>
             {isDragOver && (
               <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-500 flex items-center justify-center animate-bounce">
@@ -154,10 +154,10 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
             )}
           </div>
 
-          <p className="text-sm font-bold text-neutral-800 mb-1">
+          <p className="text-sm font-bold text-neutral-900 mb-1">
             {isDragOver ? 'Release to upload' : 'Drag & drop your source material'}
           </p>
-          <p className="text-xs text-neutral-400 font-medium">
+          <p className="text-xs text-neutral-700 font-medium">
             PDF, DOCX, or TXT &mdash; up to 50MB
           </p>
 
@@ -166,7 +166,7 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
             {['PDF', 'DOCX', 'TXT'].map((t) => (
               <span
                 key={t}
-                className="px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-200 text-[9px] font-black text-neutral-500 uppercase tracking-wider"
+                className="px-2 py-0.5 rounded-md bg-neutral-100 border border-neutral-300 text-[9px] font-black text-neutral-700 uppercase tracking-wider"
               >
                 {t}
               </span>
@@ -177,18 +177,18 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
 
       {/* ── Uploading ── */}
       {uploadState === 'uploading' && (
-        <div className="border border-neutral-200 rounded-2xl p-5 bg-white shadow-[0_2px_12px_-3px_rgba(0,0,0,0.06)]">
+        <div className="border border-neutral-300 rounded-2xl p-5 bg-neutral-200 shadow-[0_2px_12px_-3px_rgba(0,0,0,0.3)]">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-brand-50 border border-brand-100 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center shrink-0">
               {FILE_ICONS[uploadedFile?.ext || 'pdf'] || <FileText size={20} className="text-brand-500" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-neutral-900 truncate">{uploadedFile?.name}</p>
-              <p className="text-xs text-neutral-400 font-medium mt-0.5">
+              <p className="text-xs text-neutral-700 font-medium mt-0.5">
                 {uploadedFile?.size} &bull; Uploading &amp; OCR Parsing…
               </p>
             </div>
-            <span className="text-sm font-black text-brand-600 tabular-nums shrink-0">{progress}%</span>
+            <span className="text-sm font-black text-brand-500 tabular-nums shrink-0">{progress}%</span>
           </div>
 
           {/* Progress bar */}
@@ -222,25 +222,25 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
 
       {/* ── Completed ── */}
       {uploadState === 'completed' && (
-        <div className="border border-emerald-200 rounded-2xl p-5 bg-emerald-50/40">
+        <div className="border border-emerald-500/20 rounded-2xl p-5 bg-emerald-500/5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0">
-                <CheckCircle2 size={20} className="text-emerald-600" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <CheckCircle2 size={20} className="text-emerald-500" />
               </div>
               <div>
                 <p className="text-sm font-bold text-neutral-900 truncate max-w-[200px]">
                   {uploadedFile?.name}
                 </p>
-                <p className="text-xs text-neutral-500 mt-0.5 font-medium">
+                <p className="text-xs text-neutral-700 mt-0.5 font-medium">
                   {uploadedFile?.size}
                 </p>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200 text-emerald-800 text-[9px] font-extrabold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-extrabold uppercase tracking-wider">
                     <CheckCircle2 size={9} />
                     OCR Parsed
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-[9px] font-extrabold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-500 text-[9px] font-extrabold uppercase tracking-wider">
                     <Sparkles size={9} />
                     AI Ready
                   </span>
@@ -249,7 +249,7 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
             </div>
             <button
               onClick={clearFile}
-              className="p-1.5 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all"
+              className="p-1.5 rounded-lg text-neutral-700 hover:text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all"
               title="Remove file"
             >
               <Trash2 size={14} />
@@ -260,17 +260,17 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
 
       {/* ── Error ── */}
       {uploadState === 'error' && (
-        <div className="border border-red-200 rounded-2xl p-5 bg-red-50/40">
+        <div className="border border-red-500/20 rounded-2xl p-5 bg-red-500/5">
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-100 border border-red-200 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
               <AlertCircle size={20} className="text-red-500" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-bold text-red-800">Ingestion Error</p>
-              <p className="text-xs text-red-600 mt-1 font-medium leading-snug">{errorMessage}</p>
+              <p className="text-sm font-bold text-red-400">Ingestion Error</p>
+              <p className="text-xs text-red-400 mt-1 font-medium leading-snug">{errorMessage}</p>
               <button
                 onClick={clearFile}
-                className="mt-3 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-800 font-bold text-xs rounded-lg border border-red-200 transition-all"
+                className="mt-3 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs rounded-lg border border-red-500/20 transition-all"
               >
                 Clear &amp; Retry
               </button>

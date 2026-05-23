@@ -4,9 +4,11 @@
 
 @layer base {
   body {
+    /* neutral-50 = #121212 in our custom token map */
     @apply bg-neutral-50 text-neutral-800 antialiased font-ui;
   }
-  * {
+  /* Scoped – only non-layout elements get the colour transition */
+  button, a, input, select, textarea {
     @apply transition-colors duration-150;
   }
 }
@@ -14,103 +16,69 @@
 /* ===================================================================
    PREMIUM SCROLLBAR STYLES
    =================================================================== */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
 
-/* Dark pane scrollbar */
-.dark-scrollbar::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-.dark-scrollbar::-webkit-scrollbar-thumb {
-  background: #1e293b;
-}
-.dark-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-}
+.dark-scrollbar::-webkit-scrollbar-track { background: #0a0a0c; }
+.dark-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2d; }
+.dark-scrollbar::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
 /* ===================================================================
    KEYFRAME ANIMATIONS
    =================================================================== */
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 15px rgba(99, 102, 241, 0.15), 0 0 30px rgba(139, 92, 246, 0.05); }
-  50%       { box-shadow: 0 0 25px rgba(99, 102, 241, 0.40), 0 0 60px rgba(139, 92, 246, 0.15); }
+  0%, 100% { box-shadow: 0 0 15px rgba(249,115,22,0.15), 0 0 30px rgba(249,115,22,0.05); }
+  50%       { box-shadow: 0 0 25px rgba(249,115,22,0.40), 0 0 60px rgba(249,115,22,0.15); }
 }
-
 @keyframes shimmer {
   0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  100% { background-position:  200% center; }
 }
-
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateX(-8px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes ping-slow {
-  0%, 100% { transform: scale(1); opacity: 1; }
+  0%, 100% { transform: scale(1);   opacity: 1; }
   50%       { transform: scale(1.4); opacity: 0.5; }
 }
-
 @keyframes rotate-slow {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-
 @keyframes gradient-shift {
-  0%   { background-position: 0% 50%; }
+  0%   { background-position: 0%   50%; }
   50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  100% { background-position: 0%   50%; }
 }
-
 @keyframes terminal-blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
 }
 
 /* ===================================================================
    ANIMATION UTILITY CLASSES
    =================================================================== */
-.animate-glow {
-  animation: pulseGlow 2.5s infinite ease-in-out;
-}
-.animate-fade-slide-up {
-  animation: fadeSlideUp 0.4s ease-out forwards;
-}
-.animate-fade-slide-in {
-  animation: fadeSlideIn 0.3s ease-out forwards;
-}
-.animate-ping-slow {
-  animation: ping-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-.animate-rotate-slow {
-  animation: rotate-slow 3s linear infinite;
-}
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradient-shift 4s ease infinite;
-}
-.animate-terminal-blink {
-  animation: terminal-blink 1.2s step-end infinite;
-}
+.animate-glow           { animation: pulseGlow 2.5s infinite ease-in-out; }
+.animate-fade-slide-up  { animation: fadeSlideUp 0.4s ease-out forwards; }
+.animate-fade-slide-in  { animation: fadeSlideIn 0.3s ease-out forwards; }
+.animate-ping-slow      { animation: ping-slow 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+.animate-rotate-slow    { animation: rotate-slow 3s linear infinite; }
+.animate-gradient-shift { background-size: 200% 200%; animation: gradient-shift 4s ease infinite; }
+.animate-terminal-blink { animation: terminal-blink 1.2s step-end infinite; }
+.animate-float          { animation: float 3s ease-in-out infinite; }
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -119,49 +87,81 @@
    GLASS / PREMIUM UTILITY CLASSES
    =================================================================== */
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(30, 30, 31, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255,255,255,0.06);
 }
-
 .glass-dark {
-  background: rgba(7, 11, 19, 0.92);
+  background: rgba(18, 18, 18, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255,255,255,0.04);
 }
-
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #f97316, #ff9a45);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-
 .gradient-text-gold {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Premium input focus ring */
+/* Noise texture overlay for depth */
+.texture-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ===================================================================
+   FORM ELEMENT PREMIUM STYLES (dark-mode)
+   =================================================================== */
 .input-premium {
-  @apply w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-sm bg-white text-neutral-900 
-         placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-brand-500/40 
-         focus:border-brand-500 transition-all duration-200 shadow-sm;
+  @apply w-full px-3.5 py-2.5 border border-neutral-300 rounded-xl text-sm
+         bg-neutral-200 text-neutral-800 
+         placeholder-neutral-700
+         focus:outline-none focus:ring-2 focus:ring-brand-500/30
+         focus:border-brand-500 duration-200 shadow-sm;
 }
-
-/* Premium select */
 .select-premium {
-  @apply w-full px-3.5 py-2.5 border border-neutral-200 rounded-xl text-sm bg-white text-neutral-900 
-         focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 
-         transition-all duration-200 shadow-sm appearance-none cursor-pointer;
+  @apply w-full px-3.5 py-2.5 border border-neutral-300 rounded-xl text-sm
+         bg-neutral-200 text-neutral-800
+         focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500
+         duration-200 shadow-sm appearance-none cursor-pointer;
 }
 
-/* ==========================================================================
-   STRICT ACADEMIC PRINT STYLESHEET (Georgia Serif Alignment)
+/* ===================================================================
+   CARD BORDER GRADIENT HOVER TRICK
+   =================================================================== */
+.card-hover-border {
+  position: relative;
+}
+.card-hover-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(249,115,22,0.3), transparent, rgba(249,115,22,0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.card-hover-border:hover::before { opacity: 1; }
+
+/* ===================================================================
+   STRICT ACADEMIC PRINT STYLESHEET
    ========================================================================== */
 @media print {
   body {
@@ -173,22 +173,10 @@
     margin: 0 !important;
     padding: 0 !important;
   }
-
-  /* Hide all interactive UI elements on print */
-  header,
-  aside,
-  nav,
-  button,
-  .no-print,
-  .action-bar,
-  .ai-citation,
-  .citation-overlay,
-  .source-viewer-pane,
-  .assignment-controls-bar {
-    display: none !important;
-  }
-
-  /* Expand the exam sheet to fill 100% of printable space */
+  header, aside, nav, button,
+  .no-print, .action-bar, .ai-citation,
+  .citation-overlay, .source-viewer-pane,
+  .assignment-controls-bar { display: none !important; }
   .printable-exam-container {
     width: 100% !important;
     max-width: 100% !important;
@@ -198,7 +186,6 @@
     margin: 0 !important;
     display: block !important;
   }
-
   .exam-question-card {
     border: none !important;
     background: transparent !important;
@@ -206,20 +193,7 @@
     margin-bottom: 1.5rem !important;
     page-break-inside: avoid !important;
   }
-
-  @page {
-    size: A4;
-    margin: 2cm;
-  }
-
-  .question-numbering {
-    font-weight: bold !important;
-    color: #000000 !important;
-  }
-
-  .print-marks-label {
-    float: right !important;
-    font-weight: bold !important;
-    color: #000000 !important;
-  }
+  @page { size: A4; margin: 2cm; }
+  .question-numbering { font-weight: bold !important; color: #000 !important; }
+  .print-marks-label { float: right !important; font-weight: bold !important; color: #000 !important; }
 }

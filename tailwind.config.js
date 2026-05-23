@@ -9,27 +9,28 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50: '#EEF2FF',   // Light highlights
-          100: '#E0E7FF',
-          500: '#6366F1',  // AI accent violet
-          600: '#4F46E5',  // Indigo primary brand color
-          700: '#4338CA',
-          900: '#312E81',  // Deep navy text
+          50: '#FFF7ED',   // Soft orange highlight bg
+          100: '#FFEDD5',
+          500: '#F97316',  // Primary Brand Orange
+          600: '#EA580C',  // Orange Hover
+          700: '#C2410C',
+          900: '#7C2D12',
         },
         neutral: {
-          50: '#F8FAFC',   // Calming slate-grey canvas bg
-          100: '#F1F5F9',  // Inactive borders
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          700: '#334155',
-          800: '#1E293B',  // High-legibility body slate
-          900: '#0F172A',  // Midnight text
+          50: '#121212',   // Primary Dark Canvas Background
+          100: '#1E1E1F',  // Elevated Layout Panel Background
+          200: '#242426',  // Surface Container / Card Background
+          300: '#2A2A2D',  // Subtle Border Tone
+          400: '#3F3F46',  // Standard Border Color
+          700: '#A1A1AA',  // Muted Label / Description Text
+          800: '#F5F5F5',  // High-legibility Body Copy
+          900: '#FFFFFF',  // Pure White Title Text
         },
         semantic: {
-          success: '#16A34A', // Complete indicator
-          warning: '#D97706', // Processing/Warning amber
-          error: '#DC2626',   // Error red
-          ai: '#8B5CF6',      // AI magical indigo-purple
+          success: '#22C55E', // Green Completed States
+          warning: '#EA580C', // Orange warning/processing states
+          error: '#EF4444',   // Red Validation Alerts
+          ai: '#FF7A1A',      // Vibrant Orange AI Elements
         }
       },
       fontFamily: {
@@ -38,8 +39,8 @@ module.exports = {
         examSans: ['Arial', 'Helvetica', 'sans-serif'],
       },
       boxShadow: {
-        premium: '0 4px 20px -2px rgba(79, 70, 229, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.02)',
-        glow: '0 0 15px rgba(99, 102, 241, 0.15)',
+        premium: '0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 8px -1px rgba(0, 0, 0, 0.2)',
+        glow: '0 0 15px rgba(249, 115, 22, 0.15)',
       }
     },
   },
