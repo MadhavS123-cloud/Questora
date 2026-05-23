@@ -13,7 +13,7 @@ import {
 import { clsx } from 'clsx';
 
 interface UploadDropzoneProps {
-  onFileAccepted: (fileName: string, excerpt: string) => void;
+  onFileAccepted: (fileName: string, excerpt: string, file?: File) => void;
   onFileCleared: () => void;
 }
 
@@ -65,6 +65,19 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
       ext,
     });
 
+    // Read real text content for TXT files; use mock excerpt for PDF/DOCX
+    const readExcerpt = (): Promise<string> => {
+      if (file.type === 'text/plain' || ext === 'txt') {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve((e.target?.result as string)?.slice(0, 2000) || MOCK_EXCERPT);
+          reader.onerror = () => resolve(MOCK_EXCERPT);
+          reader.readAsText(file);
+        });
+      }
+      return Promise.resolve(MOCK_EXCERPT);
+    };
+
     let cur = 0;
     const iv = setInterval(() => {
       cur += Math.random() * 12 + 8;
@@ -72,10 +85,12 @@ export default function UploadDropzone({ onFileAccepted, onFileCleared }: Upload
         cur = 100;
         clearInterval(iv);
         setProgress(100);
-        setTimeout(() => {
-          setUploadState('completed');
-          onFileAccepted(file.name, MOCK_EXCERPT);
-        }, 300);
+        readExcerpt().then((excerpt) => {
+          setTimeout(() => {
+            setUploadState('completed');
+            onFileAccepted(file.name, excerpt, file);
+          }, 300);
+        });
       }
       setProgress(Math.round(cur));
     }, 140);

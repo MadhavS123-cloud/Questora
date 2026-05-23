@@ -15,9 +15,10 @@ import {
   AlertTriangle,
   Wand2,
 } from 'lucide-react';
-import { useAssignmentStore, Assignment } from '@/store/useAssignmentStore';
+import { useAssignmentStore } from '@/store/useAssignmentStore';
 import UploadDropzone from '@/components/UploadDropzone';
 import ProgressTracker from '@/components/ProgressTracker';
+import { useSocket } from '@/hooks/useSocket';
 import { clsx } from 'clsx';
 
 const SUBJECTS = ['Physics', 'Math', 'History', 'Biology', 'Chemistry', 'English'];
@@ -26,8 +27,10 @@ const GRADES = ['Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
 export default function CreateAssignment() {
   const router = useRouter();
   const {
-    addAssignment,
+    createAssignmentFromFile,
+    createAssignmentFromPayload,
     simulateAICompilation,
+    setGenerationProgress,
     generationStatus,
     generationStep,
     generationLogs,
@@ -45,21 +48,35 @@ export default function CreateAssignment() {
   const [longMarks, setLongMarks] = useState(12.5);
   const [sourceName, setSourceName] = useState('');
   const [sourceExcerpt, setSourceExcerpt] = useState('');
+  const [acceptedFile, setAcceptedFile] = useState<File | null>(null);
   const [uiView, setUiView] = useState<'form' | 'generating'>('form');
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+
+  // WebSocket — joins the assignment room once we have an id
+  useSocket({
+    assignmentId: generatingId,
+    onProgress: (payload) => {
+      setGenerationProgress(payload.status, payload.step, payload.logs);
+      if (payload.status === 'completed') {
+        setTimeout(() => router.push(`/assignments/${generatingId}`), 600);
+      }
+    },
+  });
 
   const distributedTotal = mcqCount * mcqMarks + shortCount * shortMarks + longCount * longMarks;
   const unallocatedMarks = targetTotal - distributedTotal;
   const isBalanced = Math.abs(unallocatedMarks) < 0.01;
   const canGenerate = !!sourceName && isBalanced;
 
-  const handleFileAccepted = (name: string, excerpt: string) => {
+  const handleFileAccepted = (name: string, excerpt: string, file?: File) => {
     setSourceName(name);
     setSourceExcerpt(excerpt);
+    if (file) setAcceptedFile(file);
   };
   const handleFileCleared = () => {
     setSourceName('');
     setSourceExcerpt('');
+    setAcceptedFile(null);
   };
 
   const handleOptimisticFix = () => {
@@ -68,30 +85,55 @@ export default function CreateAssignment() {
     if (targetLong > 0 && longCount > 0) setLongMarks(targetLong / longCount);
   };
 
-  const handleTriggerGeneration = () => {
+  const handleTriggerGeneration = async () => {
     if (!sourceName) return;
     if (!isBalanced) return;
-    const newId = String(Date.now());
-    const newAssignment: Assignment = {
-      id: newId,
-      title: title || 'Untitled AI Assignment',
-      subject,
-      grade,
-      totalMarks: targetTotal,
-      status: 'processing',
-      updatedAt: 'Just now',
-      progressPercent: 10,
-      sourceName,
-      sourceTextExcerpt: sourceExcerpt,
-      sections: [],
-    };
-    addAssignment(newAssignment);
-    setGeneratingId(newId);
+
     setUiView('generating');
-    simulateAICompilation(newId, () => {
-      setTimeout(() => router.push(`/assignments/${newId}`), 500);
+
+    // Reset generation state
+    useAssignmentStore.setState({
+      generationStatus: 'ingesting',
+      generationStep: 1,
+      generationLogs: [
+        '[Connection Opened] Sending assignment to Questora backend...',
+        'Phase 1: Ingesting source files...',
+      ],
     });
+
+    let newId: string;
+
+    if (acceptedFile) {
+      // Real file upload to backend
+      newId = await createAssignmentFromFile(acceptedFile, {
+        title: title || 'Untitled AI Assignment',
+        subject,
+        grade,
+        totalMarks: targetTotal,
+      });
+    } else {
+      newId = await createAssignmentFromPayload({
+        title: title || 'Untitled AI Assignment',
+        subject,
+        grade,
+        totalMarks: targetTotal,
+        sourceName,
+        sourceExcerpt,
+      });
+    }
+
+    setGeneratingId(newId);
+
+    // If backend offline → simulation drives store; watch for completion
+    const checkDone = setInterval(() => {
+      const { generationStatus: s } = useAssignmentStore.getState();
+      if (s === 'completed') {
+        clearInterval(checkDone);
+        setTimeout(() => router.push(`/assignments/${newId}`), 600);
+      }
+    }, 500);
   };
+
 
   if (uiView === 'generating') {
     return (

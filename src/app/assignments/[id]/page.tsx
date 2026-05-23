@@ -34,6 +34,7 @@ export default function AssignmentEditor() {
     deleteQuestion,
     regenerateQuestion,
     verifyAssignment,
+    fetchAssignment,
   } = useAssignmentStore();
 
   const activeAssignment = assignments.find((a) => a.id === assignmentId);
@@ -47,12 +48,37 @@ export default function AssignmentEditor() {
   const [regenLoadingId, setRegenLoadingId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<'source' | 'paper'>('paper');
   const [hoveredQuestionId, setHoveredQuestionId] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(!!activeAssignment);
 
   useEffect(() => {
-    if (!activeAssignment) router.push('/');
-  }, [activeAssignment, router]);
+    const load = async () => {
+      try {
+        await fetchAssignment(assignmentId);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setHasLoaded(true);
+      }
+    };
+    load();
+  }, [assignmentId, fetchAssignment]);
 
-  if (!activeAssignment) return null;
+  useEffect(() => {
+    if (hasLoaded && !activeAssignment) {
+      router.push('/');
+    }
+  }, [hasLoaded, activeAssignment, router]);
+
+  if (!activeAssignment) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-neutral-900 text-neutral-200">
+        <div className="flex flex-col items-center gap-3">
+          <RefreshCw size={24} className="animate-spin text-brand-500" />
+          <p className="text-sm font-semibold tracking-wide">Loading assignment data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleVerify = () => {
     verifyAssignment(activeAssignment.id);

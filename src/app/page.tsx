@@ -11,10 +11,14 @@ import { useAssignmentStore, Assignment } from '@/store/useAssignmentStore';
 import { clsx } from 'clsx';
 
 export default function Dashboard() {
-  const { assignments } = useAssignmentStore();
+  const { assignments, fetchAssignments } = useAssignmentStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSubjectFilter, setActiveSubjectFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  React.useEffect(() => {
+    fetchAssignments();
+  }, [fetchAssignments]);
 
   const subjects = ['All', 'Physics', 'Math', 'History', 'Science'];
 

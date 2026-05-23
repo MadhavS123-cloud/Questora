@@ -1,4 +1,15 @@
 import { create } from 'zustand';
+import {
+  apiGetAssignments,
+  apiGetAssignment,
+  apiCreateAssignment,
+  apiUploadAndCreate,
+  apiUpdateQuestion,
+  apiDeleteQuestion,
+  apiRegenerateQuestion,
+  apiVerifyAssignment,
+  CreateAssignmentPayload,
+} from '../lib/api';
 
 export interface Question {
   id: string;
@@ -34,29 +45,41 @@ export interface Assignment {
   sourceTextExcerpt?: string;
 }
 
-interface AssignmentStore {
-  assignments: Assignment[];
-  activeAssignment: Assignment | null;
-  activeSourceHighlight: string | null;
-  generationStep: number;
-  generationStatus: 'idle' | 'ingesting' | 'parsing' | 'synthesizing' | 'guardrails' | 'completed' | 'failed';
-  generationLogs: string[];
-  
-  // Actions
-  setAssignments: (assignments: Assignment[]) => void;
-  setActiveAssignment: (assignment: Assignment | null) => void;
-  setActiveSourceHighlight: (highlight: string | null) => void;
-  addAssignment: (assignment: Assignment) => void;
-  updateAssignmentStatus: (id: string, status: Assignment['status'], progress: number) => void;
-  updateQuestion: (assignmentId: string, sectionId: string, questionId: string, updatedFields: Partial<Question>) => void;
-  deleteQuestion: (assignmentId: string, sectionId: string, questionId: string) => void;
-  regenerateQuestion: (assignmentId: string, sectionId: string, questionId: string, type: string) => Promise<void>;
-  verifyAssignment: (id: string) => void;
-  simulateAICompilation: (id: string, onDone?: () => void) => void;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Map Mongo _id → id so the rest of the UI never needs to know about _id */
+function normalizeAssignment(raw: any): Assignment {
+  return {
+    id: raw._id ?? raw.id,
+    title: raw.title,
+    subject: raw.subject,
+    grade: raw.grade,
+    totalMarks: raw.totalMarks,
+    status: raw.status,
+    updatedAt: raw.updatedAt ?? new Date().toISOString(),
+    progressPercent: raw.progressPercent ?? 0,
+    sections: (raw.sections ?? []).map((s: any) => ({
+      id: s.id ?? s._id,
+      title: s.title,
+      questions: (s.questions ?? []).map((q: any) => ({
+        id: q.id ?? q._id,
+        index: q.index,
+        questionText: q.questionText,
+        options: q.options,
+        questionType: q.questionType,
+        marks: q.marks,
+        confidenceScore: q.confidenceScore,
+        sourceCitation: q.sourceCitation,
+      })),
+    })),
+    sourceName: raw.sourceName,
+    sourceTextExcerpt: raw.sourceTextExcerpt,
+  };
 }
 
-// Initial mockup data to populate the dashboard immediately with high-fidelity states
-const initialAssignments: Assignment[] = [
+// ─── Seed data (shown while the backend loads / offline) ─────────────────────
+
+const seedAssignments: Assignment[] = [
   {
     id: '1',
     title: '10th Grade Kinematics Midterm',
@@ -67,7 +90,8 @@ const initialAssignments: Assignment[] = [
     updatedAt: '2 mins ago',
     progressPercent: 100,
     sourceName: 'Kinematics_Lecture_Notes.pdf',
-    sourceTextExcerpt: "A vehicle accelerates uniformly from rest to a speed of 20 m/s over a distance of 100 meters. Kinematics describes the motion of points, bodies, and systems of bodies without consideration of the forces that cause the motion. Velocity is a vector quantity expressing speed and direction. Speed is purely scalar. Acceleration measures velocity change over time. Uniform acceleration formulas apply to constant velocity rates.",
+    sourceTextExcerpt:
+      'A vehicle accelerates uniformly from rest to a speed of 20 m/s over a distance of 100 meters. Kinematics describes the motion of points, bodies, and systems of bodies without consideration of the forces that cause the motion.',
     sections: [
       {
         id: 'sec-a',
@@ -77,14 +101,15 @@ const initialAssignments: Assignment[] = [
             id: 'q-1',
             index: 1,
             questionType: 'MCQ',
-            questionText: 'A vehicle accelerates uniformly from rest to a speed of 20 m/s over a distance of 100 meters. What is the acceleration of the vehicle?',
+            questionText:
+              'A vehicle accelerates uniformly from rest to 20 m/s over 100 m. What is its acceleration?',
             options: ['1.0 m/s²', '2.0 m/s²', '3.0 m/s²', '4.0 m/s²'],
             marks: 2,
             confidenceScore: 98,
             sourceCitation: {
               pageNumber: 1,
-              passageSnippet: 'A vehicle accelerates uniformly from rest to a speed of 20 m/s over a distance of 100 meters.'
-            }
+              passageSnippet: 'A vehicle accelerates uniformly from rest to a speed of 20 m/s over a distance of 100 meters.',
+            },
           },
           {
             id: 'q-2',
@@ -96,49 +121,23 @@ const initialAssignments: Assignment[] = [
             confidenceScore: 95,
             sourceCitation: {
               pageNumber: 1,
-              passageSnippet: 'Velocity is a vector quantity expressing speed and direction. Speed is purely scalar.'
-            }
+              passageSnippet: 'Velocity is a vector quantity expressing speed and direction. Speed is purely scalar.',
+            },
           },
           {
             id: 'q-3',
             index: 3,
             questionType: 'MCQ',
-            questionText: 'What branch of mechanics describes the motion of bodies without considering the forces causing it?',
+            questionText: 'What branch of mechanics describes motion without considering forces?',
             options: ['Dynamics', 'Kinematics', 'Statics', 'Thermodynamics'],
             marks: 2,
             confidenceScore: 99,
             sourceCitation: {
               pageNumber: 1,
-              passageSnippet: 'Kinematics describes the motion of points, bodies, and systems of bodies without consideration of the forces that cause the motion.'
-            }
+              passageSnippet: 'Kinematics describes the motion of points, bodies, and systems of bodies without consideration of the forces.',
+            },
           },
-          {
-            id: 'q-4',
-            index: 4,
-            questionType: 'MCQ',
-            questionText: 'Acceleration is defined mathematically as the change in which parameter over time?',
-            options: ['Displacement', 'Mass', 'Velocity', 'Kinetic Energy'],
-            marks: 2,
-            confidenceScore: 97,
-            sourceCitation: {
-              pageNumber: 1,
-              passageSnippet: 'Acceleration measures velocity change over time.'
-            }
-          },
-          {
-            id: 'q-5',
-            index: 5,
-            questionType: 'MCQ',
-            questionText: 'Under what conditions do classical uniform acceleration equations apply?',
-            options: ['Varying Acceleration', 'Constant Acceleration', 'Zero Velocity', 'Relativistic Speeds'],
-            marks: 2,
-            confidenceScore: 94,
-            sourceCitation: {
-              pageNumber: 2,
-              passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.'
-            }
-          }
-        ]
+        ],
       },
       {
         id: 'sec-b',
@@ -153,66 +152,12 @@ const initialAssignments: Assignment[] = [
             confidenceScore: 92,
             sourceCitation: {
               pageNumber: 1,
-              passageSnippet: 'Velocity is a vector quantity expressing speed and direction. Speed is purely scalar.'
-            }
+              passageSnippet: 'Velocity is a vector quantity expressing speed and direction. Speed is purely scalar.',
+            },
           },
-          {
-            id: 'q-7',
-            index: 7,
-            questionType: 'ShortAnswer',
-            questionText: 'A ball is thrown straight upwards with an initial velocity of 15 m/s. Calculate its maximum height, ignoring air resistance. (Take g = 9.8 m/s²)',
-            marks: 5,
-            confidenceScore: 89,
-            sourceCitation: {
-              pageNumber: 2,
-              passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.'
-            }
-          },
-          {
-            id: 'q-8',
-            index: 8,
-            questionType: 'ShortAnswer',
-            questionText: 'Explain why acceleration can occur even if an object is traveling at a constant speed in a circular track.',
-            marks: 5,
-            confidenceScore: 91,
-            sourceCitation: {
-              pageNumber: 1,
-              passageSnippet: 'Acceleration measures velocity change over time.'
-            }
-          }
-        ]
+        ],
       },
-      {
-        id: 'sec-c',
-        title: 'SECTION C: LONG FORM PREPARATION (25 Marks)',
-        questions: [
-          {
-            id: 'q-9',
-            index: 9,
-            questionType: 'LongForm',
-            questionText: 'Provide a complete derivation of the three equations of motion under uniform acceleration starting from standard graphical v-t representations.',
-            marks: 12.5,
-            confidenceScore: 96,
-            sourceCitation: {
-              pageNumber: 2,
-              passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.'
-            }
-          },
-          {
-            id: 'q-10',
-            index: 10,
-            questionType: 'LongForm',
-            questionText: 'Develop an experimental outline to measure the acceleration due to gravity (g) using a free-fall apparatus, indicating potential systematic errors and control variables.',
-            marks: 12.5,
-            confidenceScore: 93,
-            sourceCitation: {
-              pageNumber: 2,
-              passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.'
-            }
-          }
-        ]
-      }
-    ]
+    ],
   },
   {
     id: '2',
@@ -224,7 +169,7 @@ const initialAssignments: Assignment[] = [
     updatedAt: '1 hour ago',
     progressPercent: 0,
     sourceName: 'Revolutionary_War_Syllabus.docx',
-    sourceTextExcerpt: "The American Revolutionary War was fought from 1775 to 1783. Key causes included colonial taxation without parliamentary representation, the Stamp Act, and the Boston Tea Party. The Declaration of Independence was drafted in 1776. Major battles included Saratoga and Yorktown.",
+    sourceTextExcerpt: 'The American Revolutionary War was fought from 1775 to 1783. Key causes included colonial taxation without parliamentary representation.',
     sections: [
       {
         id: 'sec-a',
@@ -234,17 +179,17 @@ const initialAssignments: Assignment[] = [
             id: 'q-20',
             index: 1,
             questionType: 'LongForm',
-            questionText: 'Analyze the impact of colonial taxation policies, specifically the Stamp Act of 1765, in unifying colonial resistance against Great Britain.',
+            questionText: 'Analyze the impact of colonial taxation policies in unifying colonial resistance against Great Britain.',
             marks: 30,
             confidenceScore: 94,
             sourceCitation: {
               pageNumber: 1,
-              passageSnippet: 'Key causes included colonial taxation without parliamentary representation, the Stamp Act, and the Boston Tea Party.'
-            }
-          }
-        ]
-      }
-    ]
+              passageSnippet: 'Key causes included colonial taxation without parliamentary representation, the Stamp Act, and the Boston Tea Party.',
+            },
+          },
+        ],
+      },
+    ],
   },
   {
     id: '3',
@@ -256,281 +201,467 @@ const initialAssignments: Assignment[] = [
     updatedAt: '3 hours ago',
     progressPercent: 0,
     sourceName: 'Limits_Intro.txt',
-    sourceTextExcerpt: "Limits define the value that a function approaches as the input approaches some value. Continuity requires that the limit equals the function value.",
-    sections: []
-  }
+    sourceTextExcerpt: 'Limits define the value that a function approaches as the input approaches some value.',
+    sections: [],
+  },
 ];
 
+// ─── Store Interface ───────────────────────────────────────────────────────────
+
+interface AssignmentStore {
+  assignments: Assignment[];
+  activeAssignment: Assignment | null;
+  activeSourceHighlight: string | null;
+  generationStep: number;
+  generationStatus: 'idle' | 'ingesting' | 'parsing' | 'synthesizing' | 'guardrails' | 'completed' | 'failed';
+  generationLogs: string[];
+  isBackendOnline: boolean;
+
+  // Actions
+  fetchAssignments: () => Promise<void>;
+  fetchAssignment: (id: string) => Promise<void>;
+  setAssignments: (assignments: Assignment[]) => void;
+  setActiveAssignment: (assignment: Assignment | null) => void;
+  setActiveSourceHighlight: (highlight: string | null) => void;
+  addAssignment: (assignment: Assignment) => void;
+  updateAssignmentStatus: (id: string, status: Assignment['status'], progress: number) => void;
+  applyServerAssignment: (raw: any) => void;
+
+  // Real API actions (fall back to local simulation if backend offline)
+  createAssignmentFromPayload: (payload: CreateAssignmentPayload) => Promise<string>;
+  createAssignmentFromFile: (
+    file: File,
+    meta: { title: string; subject: string; grade: string; totalMarks?: number }
+  ) => Promise<string>;
+
+  updateQuestion: (assignmentId: string, sectionId: string, questionId: string, updatedFields: Partial<Question>) => void;
+  deleteQuestion: (assignmentId: string, sectionId: string, questionId: string) => void;
+  regenerateQuestion: (assignmentId: string, sectionId: string, questionId: string, type: string) => Promise<void>;
+  verifyAssignment: (id: string) => void;
+
+  // Generation progress (driven by WebSocket)
+  setGenerationProgress: (status: AssignmentStore['generationStatus'], step: number, logs: string[]) => void;
+
+  // Local simulation fallback
+  simulateAICompilation: (id: string, onDone?: () => void) => void;
+}
+
+// ─── Store ────────────────────────────────────────────────────────────────────
+
 export const useAssignmentStore = create<AssignmentStore>((set, get) => ({
-  assignments: initialAssignments,
+  assignments: seedAssignments,
   activeAssignment: null,
   activeSourceHighlight: null,
   generationStep: 0,
   generationStatus: 'idle',
   generationLogs: [],
+  isBackendOnline: false,
+
+  // ── Fetch list from backend ──────────────────────────────────────────────
+  fetchAssignments: async () => {
+    try {
+      const raw = await apiGetAssignments();
+      const normalized = raw.map(normalizeAssignment);
+      set({ assignments: normalized, isBackendOnline: true });
+    } catch (err) {
+      console.warn('[API] fetchAssignments failed — using seed data:', err);
+      set({ isBackendOnline: false });
+    }
+  },
+
+  // ── Fetch single ────────────────────────────────────────────────────────
+  fetchAssignment: async (id: string) => {
+    try {
+      const raw = await apiGetAssignment(id);
+      const normalized = normalizeAssignment(raw);
+      set((state) => ({
+        activeAssignment: normalized,
+        assignments: state.assignments.some((a) => a.id === normalized.id)
+          ? state.assignments.map((a) => (a.id === normalized.id ? normalized : a))
+          : [normalized, ...state.assignments],
+        isBackendOnline: true,
+      }));
+    } catch (err) {
+      console.warn('[API] fetchAssignment failed:', err);
+    }
+  },
 
   setAssignments: (assignments) => set({ assignments }),
   setActiveAssignment: (assignment) => set({ activeAssignment: assignment }),
   setActiveSourceHighlight: (highlight) => set({ activeSourceHighlight: highlight }),
-  
-  addAssignment: (assignment) => set((state) => ({
-    assignments: [assignment, ...state.assignments]
-  })),
 
-  updateAssignmentStatus: (id, status, progress) => set((state) => {
-    const updated = state.assignments.map((item) =>
-      item.id === id ? { ...item, status, progressPercent: progress } : item
-    );
-    // Sync with active assignment if currently focused
-    const currentActive = state.activeAssignment;
-    const activeUpdate = currentActive && currentActive.id === id 
-      ? { ...currentActive, status, progressPercent: progress } 
-      : currentActive;
+  addAssignment: (assignment) =>
+    set((state) => ({ assignments: [assignment, ...state.assignments] })),
 
-    return { 
-      assignments: updated,
-      activeAssignment: activeUpdate
-    };
-  }),
+  updateAssignmentStatus: (id, status, progress) =>
+    set((state) => {
+      const updated = state.assignments.map((item) =>
+        item.id === id ? { ...item, status, progressPercent: progress } : item
+      );
+      const activeUpdate =
+        state.activeAssignment?.id === id
+          ? { ...state.activeAssignment, status, progressPercent: progress }
+          : state.activeAssignment;
+      return { assignments: updated, activeAssignment: activeUpdate };
+    }),
 
-  updateQuestion: (assignmentId, sectionId, questionId, updatedFields) => set((state) => {
-    const updatedAssignments = state.assignments.map((assignment) => {
-      if (assignment.id !== assignmentId) return assignment;
+  applyServerAssignment: (raw) => {
+    const normalized = normalizeAssignment(raw);
+    set((state) => ({
+      assignments: state.assignments.some((a) => a.id === normalized.id)
+        ? state.assignments.map((a) => (a.id === normalized.id ? normalized : a))
+        : [normalized, ...state.assignments],
+      activeAssignment:
+        state.activeAssignment?.id === normalized.id ? normalized : state.activeAssignment,
+    }));
+  },
 
-      const updatedSections = assignment.sections.map((section) => {
-        if (section.id !== sectionId) return section;
-
-        const updatedQuestions = section.questions.map((q) =>
-          q.id === questionId ? { ...q, ...updatedFields } : q
-        );
-        return { ...section, questions: updatedQuestions };
-      });
-
-      return { ...assignment, sections: updatedSections };
-    });
-
-    const currentActive = state.activeAssignment;
-    let activeUpdate = currentActive;
-    if (currentActive && currentActive.id === assignmentId) {
-      activeUpdate = updatedAssignments.find(a => a.id === assignmentId) || null;
-    }
-
-    return {
-      assignments: updatedAssignments,
-      activeAssignment: activeUpdate
-    };
-  }),
-
-  deleteQuestion: (assignmentId, sectionId, questionId) => set((state) => {
-    const updatedAssignments = state.assignments.map((assignment) => {
-      if (assignment.id !== assignmentId) return assignment;
-
-      let marksFreed = 0;
-      const updatedSections = assignment.sections.map((section) => {
-        if (section.id !== sectionId) return section;
-
-        const targetQ = section.questions.find(q => q.id === questionId);
-        if (targetQ) marksFreed = targetQ.marks;
-
-        const filteredQuestions = section.questions.filter((q) => q.id !== questionId);
-        return { ...section, questions: filteredQuestions };
-      });
-
-      return { 
-        ...assignment, 
-        sections: updatedSections,
-        totalMarks: Math.max(0, assignment.totalMarks - marksFreed)
+  // ── Create from JSON payload ─────────────────────────────────────────────
+  createAssignmentFromPayload: async (payload) => {
+    try {
+      const { assignmentId } = await apiCreateAssignment(payload);
+      const draft: Assignment = {
+        id: assignmentId,
+        title: payload.title,
+        subject: payload.subject,
+        grade: payload.grade,
+        totalMarks: payload.totalMarks ?? 50,
+        status: 'processing',
+        updatedAt: new Date().toISOString(),
+        progressPercent: 10,
+        sections: [],
+        sourceName: payload.sourceName,
+        sourceTextExcerpt: payload.sourceExcerpt,
       };
-    });
-
-    const currentActive = state.activeAssignment;
-    let activeUpdate = currentActive;
-    if (currentActive && currentActive.id === assignmentId) {
-      activeUpdate = updatedAssignments.find(a => a.id === assignmentId) || null;
+      get().addAssignment(draft);
+      set({ isBackendOnline: true });
+      return assignmentId;
+    } catch (err) {
+      console.warn('[API] createAssignment failed — running local simulation');
+      const localId = `local-${Date.now()}`;
+      const draft: Assignment = {
+        id: localId,
+        title: payload.title,
+        subject: payload.subject,
+        grade: payload.grade,
+        totalMarks: payload.totalMarks ?? 50,
+        status: 'processing',
+        updatedAt: new Date().toISOString(),
+        progressPercent: 10,
+        sections: [],
+        sourceName: payload.sourceName,
+      };
+      get().addAssignment(draft);
+      get().simulateAICompilation(localId);
+      return localId;
     }
+  },
 
-    return {
-      assignments: updatedAssignments,
-      activeAssignment: activeUpdate
-    };
-  }),
+  // ── Create from uploaded file ─────────────────────────────────────────────
+  createAssignmentFromFile: async (file, meta) => {
+    try {
+      const { assignmentId } = await apiUploadAndCreate(file, meta);
+      const draft: Assignment = {
+        id: assignmentId,
+        title: meta.title,
+        subject: meta.subject,
+        grade: meta.grade,
+        totalMarks: meta.totalMarks ?? 50,
+        status: 'processing',
+        updatedAt: new Date().toISOString(),
+        progressPercent: 10,
+        sections: [],
+        sourceName: file.name,
+      };
+      get().addAssignment(draft);
+      set({ isBackendOnline: true });
+      return assignmentId;
+    } catch (err) {
+      console.warn('[API] uploadAndCreate failed — running local simulation');
+      const localId = `local-${Date.now()}`;
+      const draft: Assignment = {
+        id: localId,
+        title: meta.title,
+        subject: meta.subject,
+        grade: meta.grade,
+        totalMarks: meta.totalMarks ?? 50,
+        status: 'processing',
+        updatedAt: new Date().toISOString(),
+        progressPercent: 10,
+        sections: [],
+        sourceName: file.name,
+      };
+      get().addAssignment(draft);
+      get().simulateAICompilation(localId);
+      return localId;
+    }
+  },
 
-  regenerateQuestion: async (assignmentId, sectionId, questionId, type) => {
-    // Simulate API delay for regenerating a single question
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    
-    const modifierText = 
-      type === 'easier' ? 'Simpler formulation. ' :
-      type === 'harder' ? 'Advanced logical integration. ' :
-      'Alternative conceptual phrasing. ';
-
+  // ── Mutation: update question text ──────────────────────────────────────
+  updateQuestion: (assignmentId, sectionId, questionId, updatedFields) => {
+    // Optimistic update
     set((state) => {
       const updatedAssignments = state.assignments.map((assignment) => {
         if (assignment.id !== assignmentId) return assignment;
-
         const updatedSections = assignment.sections.map((section) => {
           if (section.id !== sectionId) return section;
-
-          const updatedQuestions = section.questions.map((q) => {
-            if (q.id !== questionId) return q;
-            return {
-              ...q,
-              questionText: `${modifierText}Verify this dynamic relation: ${q.questionText.replace(/^(Simpler formulation. |Advanced logical integration. |Alternative conceptual phrasing. )/, '')}`,
-              confidenceScore: Math.min(100, Math.floor(q.confidenceScore * 0.98 + Math.random() * 3))
-            };
-          });
+          const updatedQuestions = section.questions.map((q) =>
+            q.id === questionId ? { ...q, ...updatedFields } : q
+          );
           return { ...section, questions: updatedQuestions };
         });
-
         return { ...assignment, sections: updatedSections };
       });
-
-      const currentActive = state.activeAssignment;
-      let activeUpdate = currentActive;
-      if (currentActive && currentActive.id === assignmentId) {
-        activeUpdate = updatedAssignments.find(a => a.id === assignmentId) || null;
-      }
-
-      return {
-        assignments: updatedAssignments,
-        activeAssignment: activeUpdate
-      };
+      const activeUpdate =
+        state.activeAssignment?.id === assignmentId
+          ? updatedAssignments.find((a) => a.id === assignmentId) || null
+          : state.activeAssignment;
+      return { assignments: updatedAssignments, activeAssignment: activeUpdate };
     });
+
+    // Persist to backend (fire-and-forget)
+    if (updatedFields.questionText) {
+      apiUpdateQuestion(assignmentId, sectionId, questionId, updatedFields.questionText).catch(
+        (e) => console.warn('[API] updateQuestion failed:', e)
+      );
+    }
   },
 
-  verifyAssignment: (id) => set((state) => {
-    const updated = state.assignments.map((item) =>
-      item.id === id ? { ...item, status: 'completed' as const } : item
-    );
-    const activeUpdate = state.activeAssignment && state.activeAssignment.id === id
-      ? { ...state.activeAssignment, status: 'completed' as const }
-      : state.activeAssignment;
-      
-    return {
-      assignments: updated,
-      activeAssignment: activeUpdate
-    };
-  }),
+  // ── Mutation: delete question ─────────────────────────────────────────────
+  deleteQuestion: (assignmentId, sectionId, questionId) => {
+    // Optimistic update
+    set((state) => {
+      const updatedAssignments = state.assignments.map((assignment) => {
+        if (assignment.id !== assignmentId) return assignment;
+        let marksFreed = 0;
+        const updatedSections = assignment.sections.map((section) => {
+          if (section.id !== sectionId) return section;
+          const targetQ = section.questions.find((q) => q.id === questionId);
+          if (targetQ) marksFreed = targetQ.marks;
+          return { ...section, questions: section.questions.filter((q) => q.id !== questionId) };
+        });
+        return { ...assignment, sections: updatedSections, totalMarks: Math.max(0, assignment.totalMarks - marksFreed) };
+      });
+      const activeUpdate =
+        state.activeAssignment?.id === assignmentId
+          ? updatedAssignments.find((a) => a.id === assignmentId) || null
+          : state.activeAssignment;
+      return { assignments: updatedAssignments, activeAssignment: activeUpdate };
+    });
 
+    // Persist to backend
+    apiDeleteQuestion(assignmentId, sectionId, questionId).catch((e) =>
+      console.warn('[API] deleteQuestion failed:', e)
+    );
+  },
+
+  // ── Mutation: regenerate question ─────────────────────────────────────────
+  regenerateQuestion: async (assignmentId, sectionId, questionId, type) => {
+    try {
+      const raw = await apiRegenerateQuestion(
+        assignmentId,
+        sectionId,
+        questionId,
+        type as 'easier' | 'harder' | 'rephrase'
+      );
+      get().applyServerAssignment(raw);
+    } catch {
+      // Local fallback
+      const modifierText =
+        type === 'easier'
+          ? 'Simpler formulation. '
+          : type === 'harder'
+          ? 'Advanced logical integration. '
+          : 'Alternative conceptual phrasing. ';
+
+      set((state) => {
+        const updatedAssignments = state.assignments.map((assignment) => {
+          if (assignment.id !== assignmentId) return assignment;
+          const updatedSections = assignment.sections.map((section) => {
+            if (section.id !== sectionId) return section;
+            const updatedQuestions = section.questions.map((q) => {
+              if (q.id !== questionId) return q;
+              return {
+                ...q,
+                questionText: `${modifierText}${q.questionText.replace(
+                  /^(Simpler formulation\. |Advanced logical integration\. |Alternative conceptual phrasing\. )/,
+                  ''
+                )}`,
+                confidenceScore: Math.min(100, Math.floor(q.confidenceScore * 0.98 + Math.random() * 3)),
+              };
+            });
+            return { ...section, questions: updatedQuestions };
+          });
+          return { ...assignment, sections: updatedSections };
+        });
+        const activeUpdate =
+          state.activeAssignment?.id === assignmentId
+            ? updatedAssignments.find((a) => a.id === assignmentId) || null
+            : state.activeAssignment;
+        return { assignments: updatedAssignments, activeAssignment: activeUpdate };
+      });
+    }
+  },
+
+  // ── Mutation: verify ─────────────────────────────────────────────────────
+  verifyAssignment: (id) => {
+    // Optimistic
+    set((state) => ({
+      assignments: state.assignments.map((item) =>
+        item.id === id ? { ...item, status: 'completed' as const } : item
+      ),
+      activeAssignment:
+        state.activeAssignment?.id === id
+          ? { ...state.activeAssignment, status: 'completed' as const }
+          : state.activeAssignment,
+    }));
+
+    // Persist
+    apiVerifyAssignment(id).catch((e) => console.warn('[API] verifyAssignment failed:', e));
+  },
+
+  // ── WebSocket progress handler ────────────────────────────────────────────
+  setGenerationProgress: (status, step, logs) => {
+    set((state) => ({
+      generationStatus: status,
+      generationStep: step,
+      generationLogs: [...state.generationLogs, ...logs],
+    }));
+  },
+
+  // ── Local simulation fallback (no Redis / no backend) ────────────────────
   simulateAICompilation: (id, onDone) => {
-    set({ 
+    set({
       generationStatus: 'ingesting',
       generationStep: 1,
-      generationLogs: ['[Connection Opened] Real-time WebSocket channel established.', 'Phase 1: Ingesting source files...']
+      generationLogs: [
+        '[Connection Opened] Local simulation mode active.',
+        'Phase 1: Ingesting source files...',
+      ],
     });
 
     const pipelineSteps = [
       {
         status: 'parsing' as const,
-        logs: ['File check completed. Ingested 1 PDF document (2.4MB).', 'Phase 2: Semantic core analysis in progress...', 'Identified core concept group: Classical Mechanics & Force Vectors.', 'Parsing chapter definitions and formula schemas...'],
-        progress: 25
+        logs: [
+          'File check completed. Ingested document.',
+          'Phase 2: Semantic core analysis in progress...',
+          'Identified core concept group.',
+        ],
+        progress: 25,
       },
       {
         status: 'synthesizing' as const,
-        logs: ['Semantic model parsed (18 core pedagogical keyterms stored).', 'Phase 3: Synthesizing customized question models...', 'Drafting Section A: Synthesizing Multiple Choice Questions with distraction controls.', 'Drafting Section B: Structuring concept distinction short-answers.', 'Drafting Section C: Creating logical proofs for kinematics derivations.'],
-        progress: 60
+        logs: [
+          'Semantic model parsed.',
+          'Phase 3: Synthesizing question models...',
+          'Drafting Section A: Multiple Choice Questions.',
+          'Drafting Section B: Short answer questions.',
+        ],
+        progress: 60,
       },
       {
         status: 'guardrails' as const,
-        logs: ['Syntax drafts completed.', 'Phase 4: Running pedagogical safety checks...', 'Verifying syllabus compliance levels against Grade 10 standards.', 'Validating distractors alignment. Ensuring options avoid logical circular references.', 'Refining equation typography (KaTeX format compilation).'],
-        progress: 85
+        logs: [
+          'Syntax drafts completed.',
+          'Phase 4: Running pedagogical safety checks...',
+          'Validating marks and distractors alignment.',
+        ],
+        progress: 85,
       },
       {
         status: 'completed' as const,
-        logs: ['Pedagogical check passed: 100% compliance verified.', 'Phase 5: Performing structural typesetting and final print layouts.', 'Typesetting completed.', 'WebSocket Stream Closed. Assignment compiled successfully.'],
-        progress: 100
-      }
+        logs: [
+          'Pedagogical check passed.',
+          'Phase 5: Final typesetting complete.',
+          'WebSocket Stream Closed. Assignment compiled successfully.',
+        ],
+        progress: 100,
+      },
     ];
 
-    let currentStepIndex = 0;
-
+    let idx = 0;
     const interval = setInterval(() => {
-      if (currentStepIndex >= pipelineSteps.length) {
+      if (idx >= pipelineSteps.length) {
         clearInterval(interval);
-        
-        // Finalize state
-        const targetAssignment = get().assignments.find(a => a.id === id);
-        if (targetAssignment) {
-          // If the paper was empty (e.g. newly created), give it questions modeled from kinematics
-          const finalSections: Section[] = targetAssignment.sections.length > 0 ? targetAssignment.sections : [
-            {
-              id: 'sec-a',
-              title: 'SECTION A: MULTIPLE CHOICE QUESTIONS (10 Marks)',
-              questions: [
-                {
-                  id: 'q-new-1',
-                  index: 1,
-                  questionType: 'MCQ',
-                  questionText: 'Under constant acceleration conditions, which vector quantity aligns perfectly with direction change?',
-                  options: ['Instantaneous Speed', 'Instantaneous Velocity', 'Average Mass', 'Rotational Inertia'],
-                  marks: 5,
-                  confidenceScore: 96,
-                  sourceCitation: {
-                    pageNumber: 1,
-                    passageSnippet: 'Velocity is a vector quantity expressing speed and direction.'
-                  }
-                },
-                {
-                  id: 'q-new-2',
-                  index: 2,
-                  questionType: 'MCQ',
-                  questionText: 'Distinguish which of these describes acceleration change mathematically.',
-                  options: ['Velocity rate over time', 'Displacement rates', 'Momentum bounds', 'Friction constraints'],
-                  marks: 5,
-                  confidenceScore: 94,
-                  sourceCitation: {
-                    pageNumber: 1,
-                    passageSnippet: 'Acceleration measures velocity change over time.'
-                  }
-                }
-              ]
-            },
-            {
-              id: 'sec-b',
-              title: 'SECTION B: CONTEXTUAL DISCOVERY (40 Marks)',
-              questions: [
-                {
-                  id: 'q-new-3',
-                  index: 3,
-                  questionType: 'LongForm',
-                  questionText: 'Evaluate the physical meaning of the area under a Velocity-Time graph, deriving the matching displacement equation.',
-                  marks: 40,
-                  confidenceScore: 98,
-                  sourceCitation: {
-                    pageNumber: 2,
-                    passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.'
-                  }
-                }
-              ]
-            }
-          ];
+
+        const target = get().assignments.find((a) => a.id === id);
+        if (target) {
+          const finalSections: Section[] =
+            target.sections.length > 0
+              ? target.sections
+              : [
+                  {
+                    id: 'sec-a',
+                    title: 'SECTION A: MULTIPLE CHOICE QUESTIONS (10 Marks)',
+                    questions: [
+                      {
+                        id: 'q-sim-1',
+                        index: 1,
+                        questionType: 'MCQ',
+                        questionText:
+                          'Under constant acceleration, which vector quantity aligns with direction change?',
+                        options: [
+                          'Instantaneous Speed',
+                          'Instantaneous Velocity',
+                          'Average Mass',
+                          'Rotational Inertia',
+                        ],
+                        marks: 5,
+                        confidenceScore: 96,
+                        sourceCitation: {
+                          pageNumber: 1,
+                          passageSnippet: 'Velocity is a vector quantity expressing speed and direction.',
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    id: 'sec-b',
+                    title: 'SECTION B: CONTEXTUAL DISCOVERY (40 Marks)',
+                    questions: [
+                      {
+                        id: 'q-sim-2',
+                        index: 2,
+                        questionType: 'LongForm',
+                        questionText:
+                          'Evaluate the physical meaning of the area under a Velocity-Time graph, deriving the displacement equation.',
+                        marks: 40,
+                        confidenceScore: 98,
+                        sourceCitation: {
+                          pageNumber: 2,
+                          passageSnippet: 'Uniform acceleration formulas apply to constant velocity rates.',
+                        },
+                      },
+                    ],
+                  },
+                ];
 
           set((state) => ({
-            assignments: state.assignments.map(a => 
-              a.id === id 
-                ? { ...a, status: 'completed' as const, progressPercent: 100, sections: finalSections }
+            assignments: state.assignments.map((a) =>
+              a.id === id
+                ? { ...a, status: 'completed', progressPercent: 100, sections: finalSections }
                 : a
-            )
+            ),
           }));
         }
 
-        set({ 
-          generationStatus: 'completed', 
-          generationStep: 5 
-        });
-
+        set({ generationStatus: 'completed', generationStep: 5 });
         if (onDone) onDone();
       } else {
-        const currentPhase = pipelineSteps[currentStepIndex];
+        const phase = pipelineSteps[idx];
         set((state) => ({
-          generationStatus: currentPhase.status,
-          generationStep: currentStepIndex + 2,
-          generationLogs: [...state.generationLogs, ...currentPhase.logs]
+          generationStatus: phase.status,
+          generationStep: idx + 2,
+          generationLogs: [...state.generationLogs, ...phase.logs],
         }));
-        get().updateAssignmentStatus(id, currentPhase.status === 'completed' ? 'completed' : 'processing', currentPhase.progress);
-        currentStepIndex++;
+        get().updateAssignmentStatus(
+          id,
+          phase.status === 'completed' ? 'completed' : 'processing',
+          phase.progress
+        );
+        idx++;
       }
-    }, 2500); // Transitions step every 2.5s for highly legible log tracking
-  }
+    }, 2500);
+  },
 }));
-
