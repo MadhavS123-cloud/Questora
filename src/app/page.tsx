@@ -7,7 +7,7 @@ import {
   AlertCircle, AlertTriangle, ArrowRight, TrendingUp,
   LayoutGrid, List, Plus, Zap, BookOpen, BarChart3, RefreshCw,
 } from 'lucide-react';
-import { useAssignmentStore, Assignment } from '@/store/useAssignmentStore';
+import { useAssignmentStore, Assignment } from '../store/useAssignmentStore';
 import { clsx } from 'clsx';
 
 export default function Dashboard() {

@@ -15,10 +15,10 @@ import {
   AlertTriangle,
   Wand2,
 } from 'lucide-react';
-import { useAssignmentStore } from '@/store/useAssignmentStore';
-import UploadDropzone from '@/components/UploadDropzone';
-import ProgressTracker from '@/components/ProgressTracker';
-import { useSocket } from '@/hooks/useSocket';
+import { useAssignmentStore } from '../../../store/useAssignmentStore';
+import UploadDropzone from '../../../components/UploadDropzone';
+import ProgressTracker from '../../../components/ProgressTracker';
+import { useSocket } from '../../../hooks/useSocket';
 import { clsx } from 'clsx';
 
 const SUBJECTS = ['Physics', 'Math', 'History', 'Biology', 'Chemistry', 'English'];

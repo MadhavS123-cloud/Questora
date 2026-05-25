@@ -18,7 +18,7 @@ import {
   Zap,
   BookOpen,
 } from 'lucide-react';
-import { useAssignmentStore, Question } from '@/store/useAssignmentStore';
+import { useAssignmentStore, Question } from '../../../store/useAssignmentStore';
 import { clsx } from 'clsx';
 
 export default function AssignmentEditor() {
