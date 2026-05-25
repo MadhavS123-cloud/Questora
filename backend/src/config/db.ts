@@ -8,6 +8,7 @@ export async function connectDB() {
   console.log('MongoDB Connected');
   } catch (error) {
     console.error('Failed to establish database connection:', error);
-    process.exit(1);
+    // Do not exit the process; throw to allow upstream handling
+    throw error;
   }
 }
